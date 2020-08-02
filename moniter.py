@@ -5,18 +5,16 @@ import win32file
 import win32con
 import win32api
 import win32event
-import operations
-import zipfile
 
-FOLDER_TO_MONITER = "D:\MAX_EINSTEIN\Downloads"
+## Constants
 
-FILE_LIST_DIRECTORY = 0x0001
-FILE_ACTION_ADDED = 0x00000001
-FILE_ACTION_REMOVED = 0x00000002
+ASYNC_TIMEOUT = 5000    # 5 s
 
-ASYNC_TIMEOUT = 5000
+BUFFER_SIZE = 65536     # 64 KB
 
-BUF_SIZE = 65536
+# Grants the right to read data from the file. 
+# For a directory, this value grants the right to list the contents of the directory.
+FILE_LIST_DIRECTORY = 0x0001 # 1 (base 8)
 
 
 def get_dir_handle(dir_name):
@@ -52,31 +50,13 @@ def read_dir_changes(dir_handle, size_or_buf, overlapped):
     )
 
 
-def handle_results(results):
-    for item in results:
-        print("{}, ".format(item), end='')
-
-        if(isinstance(item, list) and len(item) > 1):
-            _action, _file = item[:1]
-        else:
-            _action, _file = item
-
-        if _action == FILE_ACTION_ADDED:
-            print("ADDED ", _file)
-            fullpath = "{}\{}".format(FOLDER_TO_MONITER, _file)
-            if(zipfile.is_zipfile(fullpath)):
-                operations.unzip_file(fullpath)
-        if _action == FILE_ACTION_REMOVED:
-            print("DELETED", _file)
-
-
 def esc_pressed():
     return msvcrt.kbhit() and ord(msvcrt.getch()) == 27
 
 
-def monitor_dir_async(dir_handle):
+def monitor_dir_async(dir_name, dir_handle, handle_results):
     idx = 0
-    buffer = win32file.AllocateReadBuffer(BUF_SIZE)
+    buffer = win32file.AllocateReadBuffer(BUFFER_SIZE)
     overlapped = pywintypes.OVERLAPPED()
     overlapped.hEvent = win32event.CreateEvent(None, False, 0, None)
     while True:
@@ -86,10 +66,9 @@ def monitor_dir_async(dir_handle):
         if rc == win32event.WAIT_OBJECT_0:
             bufer_size = win32file.GetOverlappedResult(dir_handle, overlapped, True)
             results = win32file.FILE_NOTIFY_INFORMATION(buffer, bufer_size)
-            handle_results(results)
+            handle_results(dir_name, results)
         elif rc == win32event.WAIT_TIMEOUT:
-            #print("    timeout...")
-            pass
+            print("Timeout monitoring changes on {}", dir_handle)
         else:
             print("Received {:d}. Exiting".format(rc))
             break
@@ -98,15 +77,7 @@ def monitor_dir_async(dir_handle):
     win32api.CloseHandle(overlapped.hEvent)
 
 
-def monitor_dir(dir_name):
+def monitor_dir(dir_name, handle_results):
     dir_handle = get_dir_handle(dir_name)
-    monitor_dir_async(dir_handle)
+    monitor_dir_async(dir_name, dir_handle, handle_results)
     win32api.CloseHandle(dir_handle)
-
-
-def main():
-    monitor_dir(FOLDER_TO_MONITER)
-
-
-if __name__ == "__main__":
-    main()
