@@ -1,11 +1,8 @@
-import moniter, actions
-
-FOLDER_TO_MONITER = "D:\MAX_EINSTEIN\Downloads"
-LOG_FILE = "log.txt"
-
+from moniter_sync import monitor_dir
+from actions import handle_results
 
 def main():
-    moniter.monitor_dir(FOLDER_TO_MONITER, actions.handle_results)
+    monitor_dir(handle_results)
 
 if __name__ == "__main__":
     main()
