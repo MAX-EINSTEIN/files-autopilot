@@ -2,6 +2,7 @@ import os, shutil, sys
 import zipfile
 from zipfile import ZipFile
 from config import categories, destinations
+import uuid
 
 
 def get_file_extension(path):
@@ -33,6 +34,10 @@ def move_file(file, source, dest):
             if os.path.isfile(from_file):
                 if not os.path.exists(dest):
                     os.makedirs(dest)
+                else:
+                    if os.path.isfile(to_file):
+                        new_file_name = file.split()[0] + str(uuid.uuid4()) + '.' + get_file_extension(file)
+                        to_file = os.path.join(dest, new_file_name)
                 os.rename(from_file, to_file)
                 print('moved: ' + str(to_file))
     except Exception as e:
@@ -48,6 +53,10 @@ def copy_file(file, source, dest):
             if os.path.isfile(from_file):
                 if not os.path.exists(dest):
                     os.makedirs(dest)
+                else:
+                    if os.path.isfile(to_file):
+                        new_file_name = file.split()[0] + str(uuid.uuid4()) + '.' + get_file_extension(file)
+                        to_file = os.path.join(dest, new_file_name)
                 shutil.copyfile(from_file, to_file)
                 os.remove(from_file)
                 print('moved: ' + str(to_file))
